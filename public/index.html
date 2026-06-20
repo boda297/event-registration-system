@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventPass - Premium Event Management & Registration</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Navigation Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <a href="#" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-calendar-days"></i></span>
+                <span class="logo-text">Event<span>Pass</span></span>
+            </a>
+            
+            <div class="nav-controls">
+                <!-- Guest View -->
+                <div id="guest-nav" class="nav-group">
+                    <button class="btn btn-secondary" onclick="openModal('login-modal')">Log In</button>
+                    <button class="btn btn-primary" onclick="openModal('register-modal')">Sign Up</button>
+                </div>
+                <!-- Auth View -->
+                <div id="auth-nav" class="nav-group hidden">
+                    <span class="user-welcome">Hello, <strong id="user-display-name">Guest</strong> <span id="user-role-badge" class="badge">User</span></span>
+                    <button class="btn btn-logout" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="app-container">
+        <!-- Hero & Stats Header -->
+        <section class="dashboard-hero">
+            <div class="hero-content">
+                <h1>Discover & Register for Amazing Events</h1>
+                <p>Manage your reservations, create new events, and join the community easily.</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon pink"><i class="fa-solid fa-ticket"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-total-events">-</h3>
+                        <p>Active Events</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon cyan"><i class="fa-solid fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-my-registrations">-</h3>
+                        <p>My Registrations</p>
+                    </div>
+                </div>
+                <div class="stat-card admin-only hidden">
+                    <div class="stat-icon purple"><i class="fa-solid fa-user-shield"></i></div>
+                    <div class="stat-info">
+                        <h3>Admin</h3>
+                        <p>Dashboard Access</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Section -->
+        <section class="content-layout">
+            <!-- Left Sidebar: Filter Panel -->
+            <aside class="filter-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-sliders"></i> Filter Events</h2>
+                    <button class="btn-clear" onclick="clearFilters()">Reset</button>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="search-input">Search Events</label>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Search by title, location..." oninput="filterEvents()">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sort-select">Sort By</label>
+                    <div class="select-wrapper">
+                        <select id="sort-select" onchange="filterEvents()">
+                            <option value="date-asc">Date: Soonest First</option>
+                            <option value="date-desc">Date: Latest First</option>
+                            <option value="title-asc">Title: A-Z</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Availability</label>
+                    <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="filter-spots" onchange="filterEvents()">
+                            <span class="checkmark"></span>
+                            Show only events with spots
+                        </label>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Panel: Lists & Controls -->
+            <div class="main-content-panel">
+                <div class="tab-header">
+                    <div class="tabs">
+                        <button id="tab-all-events" class="tab-btn active" onclick="switchTab('all-events')">
+                            <i class="fa-solid fa-globe"></i> All Events
+                        </button>
+                        <button id="tab-my-registrations" class="tab-btn hidden" onclick="switchTab('my-registrations')">
+                            <i class="fa-solid fa-bookmark"></i> My Registrations
+                        </button>
+                        <button id="tab-admin-dashboard" class="tab-btn admin-only hidden" onclick="switchTab('admin-dashboard')">
+                            <i class="fa-solid fa-gear"></i> Admin Dashboard
+                        </button>
+                    </div>
+
+                    <!-- Admin actions -->
+                    <button class="btn btn-primary admin-only hidden" onclick="openCreateEventModal()">
+                        <i class="fa-solid fa-plus"></i> Create Event
+                    </button>
+                </div>
+
+                <!-- Tab: All Events -->
+                <div id="view-all-events" class="tab-view active">
+                    <div id="events-loader" class="loader-container">
+                        <div class="spinner"></div>
+                        <p>Loading events...</p>
+                    </div>
+                    <div id="events-grid" class="events-grid hidden">
+                        <!-- Event Cards will be injected here -->
+                    </div>
+                    <div id="events-empty" class="empty-state hidden">
+                        <i class="fa-regular fa-calendar-times"></i>
+                        <h3>No events found</h3>
+                        <p>Try adjusting your search query or check back later.</p>
+                    </div>
+                </div>
+
+                <!-- Tab: My Registrations -->
+                <div id="view-my-registrations" class="tab-view hidden">
+                    <div id="registrations-loader" class="loader-container hidden">
+                        <div class="spinner"></div>
+                        <p>Loading your registrations...</p>
+                    </div>
+                    <div id="registrations-grid" class="events-grid">
+                        <!-- User's registered events injected here -->
+                    </div>
+                    <div id="registrations-empty" class="empty-state hidden">
+                        <i class="fa-solid fa-ticket-simple"></i>
+                        <h3>No registrations yet</h3>
+                        <p>Explore our events catalog and sign up for one today!</p>
+                    </div>
+                </div>
+
+                <!-- Tab: Admin Dashboard -->
+                <div id="view-admin-dashboard" class="tab-view admin-only hidden">
+                    <div class="admin-tab-header">
+                        <button id="btn-admin-sub-events" class="subtab-btn active" onclick="switchAdminSubTab('events')">
+                            <i class="fa-solid fa-calendar-check"></i> Events
+                        </button>
+                        <button id="btn-admin-sub-users" class="subtab-btn" onclick="switchAdminSubTab('users')">
+                            <i class="fa-solid fa-users-gear"></i> Users
+                        </button>
+                        <button class="btn btn-secondary" onclick="openCreateAdminModal()" style="margin-left: auto;">
+                            <i class="fa-solid fa-user-plus"></i> Add Admin
+                        </button>
+                    </div>
+
+                    <!-- Admin Events Panel -->
+                    <div id="admin-events-panel" class="admin-sub-panel">
+                        <div class="admin-dashboard-container">
+                            <div class="admin-header">
+                                <h2>Manage Registered Events</h2>
+                                <p>Monitor capacities, adjust listings, and oversee attendee metrics.</p>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Event Name</th>
+                                            <th>Date</th>
+                                            <th>Capacity Status</th>
+                                            <th>Location</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-events-table-body">
+                                        <!-- Admin table rows will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Users Panel -->
+                    <div id="admin-users-panel" class="admin-sub-panel hidden">
+                        <div class="admin-dashboard-container">
+                            <div class="admin-header">
+                                <h2>Manage Registered Users</h2>
+                                <p>View active accounts, assign administrators, and remove profiles.</p>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table-body">
+                                        <!-- Admin users rows will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Login -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('login-modal')">&times;</span>
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <p>Log in to access your event registrations and reserve spots.</p>
+            </div>
+            <form id="login-form" onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="name@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Log In</button>
+            </form>
+            <div class="modal-footer">
+                <p>Don't have an account? <a href="#" onclick="switchModal('login-modal', 'register-modal')">Sign Up</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Register -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('register-modal')">&times;</span>
+            <div class="modal-header">
+                <h2>Create Account</h2>
+                <p>Register as a regular user to reserve seats and join events.</p>
+            </div>
+            <form id="register-form" onsubmit="handleRegisterSubmit(event)">
+                <div class="form-group">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" required placeholder="Alex Johnson">
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email Address</label>
+                    <input type="email" id="register-email" required placeholder="name@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required placeholder="Min 6 characters">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+            </form>
+            <div class="modal-footer">
+                <p>Already have an account? <a href="#" onclick="switchModal('register-modal', 'login-modal')">Log In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Event Form (Create/Edit Event) -->
+    <div id="event-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('event-modal')">&times;</span>
+            <div class="modal-header">
+                <h2 id="event-modal-title">Create New Event</h2>
+                <p>Fill out the details below to publish your event on the catalog.</p>
+            </div>
+            <form id="event-form" onsubmit="handleEventSubmit(event)">
+                <input type="hidden" id="event-id">
+                <div class="form-group">
+                    <label for="event-title">Event Title</label>
+                    <input type="text" id="event-title" required placeholder="e.g. Modern Web Development Masterclass">
+                </div>
+                <div class="form-group">
+                    <label for="event-description">Description</label>
+                    <textarea id="event-description" rows="3" placeholder="Explain what the event is about..."></textarea>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="event-date">Date & Time</label>
+                        <input type="datetime-local" id="event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-capacity">Total Capacity (0 for unlimited)</label>
+                        <input type="number" id="event-capacity" min="0" required placeholder="e.g. 50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="event-location">Location</label>
+                    <input type="text" id="event-location" required placeholder="e.g. Room 402, Building A or Remote (Zoom)">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="event-submit-btn">Publish Event</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Create Admin User (Admin Only) -->
+    <div id="admin-create-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('admin-create-modal')">&times;</span>
+            <div class="modal-header">
+                <h2>Add Administrator</h2>
+                <p>Register a new administrator to help manage events and registrations.</p>
+            </div>
+            <form id="admin-create-form" onsubmit="handleCreateAdminSubmit(event)">
+                <div class="form-group">
+                    <label for="admin-create-name">Full Name</label>
+                    <input type="text" id="admin-create-name" required placeholder="Jane Doe">
+                </div>
+                <div class="form-group">
+                    <label for="admin-create-email">Email Address</label>
+                    <input type="email" id="admin-create-email" required placeholder="jane.doe@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="admin-create-password">Password</label>
+                    <input type="password" id="admin-create-password" required placeholder="Min 6 characters">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Add Administrator</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>&copy; 2026 EventPass Systems Inc. All rights reserved.</p>
+    </footer>
+
+    <!-- Frontend Script -->
+    <script src="app.js"></script>
+</body>
+</html>
